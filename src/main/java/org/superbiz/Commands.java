@@ -47,7 +47,7 @@ public class Commands {
              final Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             conn.start();
-            Destination dest = getDestination(destination);
+            Destination dest = getDestination(uri, destination);
             MessageConsumer consumer = sess.createConsumer(dest);
 
             while (true) {
@@ -59,9 +59,20 @@ public class Commands {
         }
     }
 
-    private Destination getDestination(final String destination) {
+    private Destination getDestination(String uri, final String destination) {
         if (destination == null) {
             throw new NullPointerException("Destination cannot be null");
+        }
+
+        final Properties p = new Properties();
+        p.setProperty(Context.INITIAL_CONTEXT_FACTORY, "org.apache.activemq.jndi.ActiveMQInitialContextFactory");
+        p.setProperty(Context.PROVIDER_URL, uri);
+
+        try {
+            final InitialContext initialContext = new InitialContext(p);
+            return (Destination) initialContext.lookup(destination);
+        } catch (Exception e) {
+            // try and do this without JNDI
         }
 
         if (destination.toLowerCase().startsWith("queue://")) {
@@ -72,7 +83,7 @@ public class Commands {
             return new ActiveMQTopic(destination.substring(8));
         }
 
-        return new ActiveMQTopic(destination);
+        throw new RuntimeException(destination + " not found");
     }
 
     @Command("produce")
@@ -87,7 +98,7 @@ public class Commands {
              final Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             conn.start();
-            Destination dest = getDestination(destination);
+            Destination dest = getDestination(uri, destination);
             final MessageProducer producer = sess.createProducer(dest);
 
             for (int i = 0; i < count; i++) {
