@@ -39,11 +39,13 @@ public class Commands {
 
     @Command("consume")
     public void consume(@Required @Option("uri") final String uri,
-                        @Required @Option("dest") final String destination) {
+                        @Required @Option("dest") final String destination,
+                        @Option("username") final String username,
+                        @Option("password") final String password) {
 
         final ConnectionFactory cf = getConnectionFactory(uri);
 
-        try (final Connection conn = cf.createConnection();
+        try (final Connection conn = getConnection(cf, username, password);
              final Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             conn.start();
@@ -90,11 +92,13 @@ public class Commands {
     public void produce(@Required @Option("uri") final String uri,
                         @Required @Option("dest") final String destination,
                         @Required @Option("message") final String payload,
-                        @Required @Option("count") final Integer count) {
+                        @Required @Option("count") final Integer count,
+                        @Option("username") final String username,
+                        @Option("password") final String password) {
 
         final ConnectionFactory cf = getConnectionFactory(uri);
 
-        try (final Connection conn = cf.createConnection();
+        try (final Connection conn = getConnection(cf, username, password);
              final Session sess = conn.createSession(false, Session.AUTO_ACKNOWLEDGE)) {
 
             conn.start();
@@ -107,6 +111,14 @@ public class Commands {
 
         } catch (JMSException e) {
             e.printStackTrace();
+        }
+    }
+
+    private Connection getConnection(final ConnectionFactory cf, final String username, final String password) throws JMSException {
+        if (username == null && password == null) {
+            return cf.createConnection();
+        } else {
+            return cf.createConnection(username, password);
         }
     }
 
